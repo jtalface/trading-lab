@@ -73,6 +73,10 @@ setup: setup-complete
 	@echo "✅ Setup complete!"
 	@echo "🌐 Open http://localhost:3847 to get started"
 
+dates:
+	@echo "Checking available backtest date ranges..."
+	@docker-compose exec backend python scripts/check_available_dates.py
+
 clean:
 	docker-compose down -v
 	@echo "All containers and volumes removed"

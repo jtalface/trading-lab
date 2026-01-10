@@ -88,9 +88,27 @@ Open your browser and navigate to:
 ## First Actions in UI
 
 ### Strategy Lab
+
+**⚠️ IMPORTANT: Check Available Dates First!**
+
+Before running a backtest, check what date ranges have computed features:
+
+```bash
+make dates
+```
+
+This will show you the exact dates you can use. For example:
+```
+✅ BACKTEST RANGE: 2023-03-15 to 2023-03-31
+   Use these dates in Strategy Lab for ES
+```
+
+**Why?** Features require 50+ days of historical data for calculation (MA50), so if you have 62 days of bars starting Jan 3rd, features only become available from around March 15th.
+
+**Then run your backtest:**
 1. Navigate to "Strategy Lab"
 2. Select ES and NQ instruments
-3. Set date range (2023-01-03 to 2023-03-31)
+3. Set date range using the dates from `make dates` (e.g., 2023-03-15 to 2023-03-31)
 4. Click "Run Backtest"
 5. Wait ~10 seconds for completion
 
@@ -120,6 +138,12 @@ Open your browser and navigate to:
 ## Common Commands
 
 ```bash
+# Check available backtest date ranges
+make dates
+
+# Check database status
+make check
+
 # View logs
 docker-compose logs -f backend
 docker-compose logs -f frontend

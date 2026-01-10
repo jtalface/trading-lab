@@ -466,8 +466,13 @@ This software is for educational purposes only. Trading futures involves substan
 ## 📞 Support
 
 For questions, issues, or suggestions:
+- **Troubleshooting**: See `TROUBLESHOOTING.md` for common issues and solutions
+- **Testing**: See `TESTING_GUIDE.md` for comprehensive testing procedures
+- **Data**: See `DATA_GUIDE.md` for data sources and ingestion
+- **Trader Guide**: See `TRADER_GUIDE.md` for how to use the application
+- **Acronyms**: See `README-ACRONYMS.md` for all technical terms
+- **API Docs**: http://localhost:8432/docs
 - Open an issue on GitHub
-- Review the API documentation at http://localhost:8432/docs
 - Check the test suite for usage examples
 
 ## 🔌 Port Configuration
