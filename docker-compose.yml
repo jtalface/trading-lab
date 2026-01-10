@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: trader
+      POSTGRES_PASSWORD: trader123
+      POSTGRES_DB: volatility_edge
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trader"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8432:8432"
+    environment:
+      DATABASE_URL: postgresql://trader:trader123@postgres:5432/volatility_edge
+      DATABASE_URL_SQLITE: sqlite:///./volatility_edge.db
+      USE_SQLITE: "false"
+      PYTHONUNBUFFERED: 1
+    volumes:
+      - ./backend:/app
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8432 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3847:3847"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8432
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    command: npm run dev -- -p 3847
+
+volumes:
+  postgres_data:
+
