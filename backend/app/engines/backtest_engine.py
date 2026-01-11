@@ -269,9 +269,6 @@ class BacktestEngine:
             }
             
             # Generate signal
-            print(f"DEBUG BACKTEST: {current_date} - Generating signal for {instrument.symbol}")
-            print(f"  current_bar: close={current_bar['close']:.2f}")
-            print(f"  features: ma50={features['ma_50']:.2f}, slope={features['ma_slope_10']:.4f}, hh20={features['hh_20']:.2f}")
             strategy_signal = strategy_engine.generate_signal(
                 current_date=current_date,
                 current_bar=current_bar,
@@ -288,7 +285,7 @@ class BacktestEngine:
             )
         
         # Calculate daily P&L and create snapshot
-        state = self._create_daily_snapshot(current_date, state, backtest_run)
+        state = self._create_daily_snapshot(current_date, state, backtest_run, instrument_data)
         
         return state
     
@@ -392,7 +389,6 @@ class BacktestEngine:
         
         # Handle entries
         elif signal.action in [SignalAction.ENTRY_LONG, SignalAction.ENTRY_SHORT]:
-            print(f"DEBUG: Processing ENTRY signal for {instrument.symbol}")
             # Calculate position size
             current_positions = [
                 {
@@ -402,9 +398,6 @@ class BacktestEngine:
                 for p in state.positions.values()
             ]
             
-            print(f"DEBUG: Calling risk_engine.validate_trade()")
-            print(f"  entry_price={signal.price:.2f}, stop_price={signal.stop_price:.2f}")
-            print(f"  equity={state.equity:.2f}, atr={signal.atr:.2f}")
             position_size, risk_state = risk_engine.validate_trade(
                 equity=state.equity,
                 peak_equity=state.peak_equity,
@@ -418,7 +411,6 @@ class BacktestEngine:
                 instrument_symbol=instrument.symbol
             )
             
-            print(f"DEBUG: Risk engine returned contracts={position_size.contracts}, mode={risk_state.mode.value}, can_trade={risk_state.can_open_new_trades}")
             if position_size.contracts > 0:
                 # Get next day's open for entry (if available)
                 next_date = self._get_next_trading_day(current_date, df)
@@ -517,9 +509,9 @@ class BacktestEngine:
         )
         state.positions[instrument.id] = position
         
-        # Update cash
-        trade_value = abs(quantity) * entry_price * instrument.multiplier
-        state.cash -= trade_value + commission
+        # Update cash (for futures, only deduct commission, not notional value)
+        # Futures use margin, not full capital deployment like stocks
+        state.cash -= commission
         
         return state
     
@@ -562,21 +554,23 @@ class BacktestEngine:
         self.db.add(fill)
         
         # Calculate P&L
-        pnl = position.get_pnl(exit_price) - commission
+        realized_pnl = position.get_pnl(exit_price)
+        net_pnl = realized_pnl - commission
         
         # Update metrics
         state.total_trades += 1
-        if pnl > 0:
+        if net_pnl > 0:
             state.winning_trades += 1
-            state.gross_profit += pnl
+            state.gross_profit += net_pnl
         else:
             state.losing_trades += 1
-            state.gross_loss += abs(pnl)
+            state.gross_loss += abs(net_pnl)
         
-        # Update cash and equity
-        trade_value = abs(position.quantity) * exit_price * position.multiplier
-        state.cash += trade_value - commission
-        state.equity += pnl
+        # Update cash (for futures, add realized P&L minus commission)
+        state.cash += realized_pnl - commission
+        
+        # Remove position from tracking
+        del state.positions[instrument_id]
         
         return state
     
@@ -584,14 +578,25 @@ class BacktestEngine:
         self,
         current_date: date,
         state: BacktestState,
-        backtest_run: BacktestRun
+        backtest_run: BacktestRun,
+        instrument_data: Dict = None
     ) -> BacktestState:
         """Create daily portfolio snapshot."""
-        # Calculate total position value
-        unrealized_pnl = sum(
-            pos.get_pnl(0)  # We'll update with close price
-            for pos in state.positions.values()
-        )
+        # Calculate unrealized P&L using current close prices
+        unrealized_pnl = 0.0
+        total_exposure = 0.0
+        
+        if instrument_data:
+            for inst_id, position in state.positions.items():
+                if inst_id in instrument_data:
+                    df = instrument_data[inst_id]['data']
+                    if current_date in df.index:
+                        current_close = df.loc[current_date]['close']
+                        unrealized_pnl += position.get_pnl(current_close)
+                        total_exposure += abs(position.get_value(current_close))
+        
+        # Update equity to include unrealized P&L
+        state.equity = state.cash + unrealized_pnl
         
         # Update peak equity
         if state.equity > state.peak_equity:
@@ -613,7 +618,7 @@ class BacktestEngine:
             realized_pnl=state.gross_profit - state.gross_loss,
             daily_pnl=daily_pnl,
             drawdown=drawdown,
-            total_exposure=sum(abs(p.get_value(0)) for p in state.positions.values()),
+            total_exposure=total_exposure,
             num_positions=len(state.positions)
         )
         self.db.add(snapshot)

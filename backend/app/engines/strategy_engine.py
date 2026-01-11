@@ -117,16 +117,12 @@ class StrategyEngine:
         
         # Long breakout: today's close breaks above yesterday's HH20
         if trend == TrendDirection.LONG:
-            print(f"DEBUG: Long filter passed, close={close:.2f}, hh_20={hh_20:.2f}, breakout={close > hh_20}")
             if close > hh_20:
-                print(f"DEBUG: LONG BREAKOUT SIGNAL!")
                 return SignalAction.ENTRY_LONG
         
         # Short breakout: today's close breaks below yesterday's LL20
         if trend == TrendDirection.SHORT:
-            print(f"DEBUG: Short filter passed, close={close:.2f}, ll_20={ll_20:.2f}, breakout={close < ll_20}")
             if close < ll_20:
-                print(f"DEBUG: SHORT BREAKOUT SIGNAL!")
                 return SignalAction.ENTRY_SHORT
         
         return None
@@ -291,8 +287,6 @@ class StrategyEngine:
         
         # Check trend filter
         trend = self.check_trend_filter(close, ma_50, ma_slope_10)
-        print(f"DEBUG: {current_date} - close={close:.2f}, ma50={ma_50:.2f}, slope={ma_slope_10:.4f}, trend={trend}")
-        
         if trend == TrendDirection.NEUTRAL:
             return StrategySignal(
                 date=current_date,
@@ -305,7 +299,6 @@ class StrategyEngine:
                 ma_slope=ma_slope_10
             )
         
-        print(f"DEBUG: Trend filter passed! Checking breakout...")
         # Check for breakout entry
         entry_signal = self.check_breakout_entry(close, prev_close, hh_20, ll_20, trend)
         

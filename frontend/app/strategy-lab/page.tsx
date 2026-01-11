@@ -254,7 +254,7 @@ export default function StrategyLabPage() {
               <label className="label">Risk Per Trade (%)</label>
               <input
                 type="number"
-                value={(config.risk_per_trade || 0.005) * 100}
+                value={(config.risk_per_trade || 0.06) * 100}
                 onChange={e => setConfig({ ...config, risk_per_trade: Number(e.target.value) / 100 })}
                 className="input"
                 min="0.1"
@@ -278,7 +278,7 @@ export default function StrategyLabPage() {
               <label className="label">Max Gross Exposure (%)</label>
               <input
                 type="number"
-                value={(config.max_gross_exposure || 0.5) * 100}
+                value={(config.max_gross_exposure || 5.0) * 100}
                 onChange={e => setConfig({ ...config, max_gross_exposure: Number(e.target.value) / 100 })}
                 className="input"
                 min="10"

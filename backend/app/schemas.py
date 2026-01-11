@@ -169,11 +169,11 @@ class BacktestConfig(BaseModel):
     stop_atr_multiple: float = 2.0
     cooldown_days: int = 3
     
-    # Risk parameters
-    risk_per_trade: float = 0.005
-    max_contracts_per_instrument: Optional[int] = None
-    max_gross_exposure: Optional[float] = None
-    max_correlated_exposure: Optional[float] = None  # For ES+NQ
+    # Risk parameters (defaults set for futures trading with leverage)
+    risk_per_trade: float = 0.06  # 6% - higher for futures due to leverage
+    max_contracts_per_instrument: Optional[int] = 5
+    max_gross_exposure: Optional[float] = 5.0  # 500% - futures use notional leverage
+    max_correlated_exposure: Optional[float] = 4.0  # 400% - For ES+NQ combined
     
     # Execution parameters
     slippage_ticks: float = 1.0

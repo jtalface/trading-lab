@@ -183,8 +183,6 @@ class RiskEngine:
         # Calculate number of contracts
         contracts_float = adjusted_risk_amount / stop_distance_dollars
         contracts = int(math.floor(contracts_float))
-        print(f"DEBUG RISK: stop_dist_points={stop_distance_points:.2f}, stop_dist_$={stop_distance_dollars:.2f}")
-        print(f"DEBUG RISK: risk_amt={adjusted_risk_amount:.2f}, contracts_float={contracts_float:.4f}, contracts={contracts}")
         
         # Apply max contracts per instrument limit
         if self.config.max_contracts_per_instrument is not None:
@@ -230,13 +228,9 @@ class RiskEngine:
         total_current_exposure = sum(abs(p['value']) for p in current_positions)
         total_new_exposure = total_current_exposure + abs(new_position_value)
         
-        print(f"DEBUG EXPOSURE: current=${total_current_exposure:,.2f}, new=${new_position_value:,.2f}, total=${total_new_exposure:,.2f}")
-        
         # Check max gross exposure
         if self.config.max_gross_exposure is not None:
             max_exposure_dollars = equity * self.config.max_gross_exposure
-            print(f"DEBUG EXPOSURE: equity=${equity:,.2f}, max_gross={self.config.max_gross_exposure}, max_allowed=${max_exposure_dollars:,.2f}")
-            print(f"DEBUG EXPOSURE: Check: {total_new_exposure:,.2f} > {max_exposure_dollars:,.2f}? {total_new_exposure > max_exposure_dollars}")
             if total_new_exposure > max_exposure_dollars:
                 return False, f"Would exceed max gross exposure ({self.config.max_gross_exposure:.1%} of equity)"
         
@@ -300,17 +294,13 @@ class RiskEngine:
         # Check exposure limits if we have current positions
         if current_positions is not None and position_size.contracts > 0:
             position_value = position_size.contracts * entry_price * multiplier
-            print(f"DEBUG RISK: Checking exposure limits, position_value=${position_value:,.2f}")
             allowed, reason = self.check_exposure_limits(
                 current_positions, position_value, equity, instrument_symbol
             )
-            print(f"DEBUG RISK: Exposure check: allowed={allowed}, reason={reason}")
             
             if not allowed:
-                print(f"DEBUG RISK: ❌ TRADE REJECTED BY EXPOSURE LIMITS!")
                 position_size.contracts = 0
                 position_size.reason = reason
         
-        print(f"DEBUG RISK: Returning contracts={position_size.contracts}")
         return position_size, risk_state
 
