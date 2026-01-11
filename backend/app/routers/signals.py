@@ -37,14 +37,54 @@ def get_today_signals(
 def get_recent_signals(
     days: int = 7,
     limit: int = 100,
+    include_backtest: bool = True,
     db: Session = Depends(get_db)
 ):
-    """Get recent trading signals."""
+    """
+    Get recent trading signals.
+    If include_backtest=True (default), includes signals from backtests.
+    If False, only shows live trading signals.
+    """
     cutoff_date = date.today() - timedelta(days=days)
     
+    query = db.query(Signal).filter(Signal.date >= cutoff_date)
+    
+    # If not including backtest signals, filter them out
+    if not include_backtest:
+        query = query.filter(Signal.backtest_run_id == None)
+    
+    signals = query.join(Instrument).order_by(Signal.date.desc()).limit(limit).all()
+    
+    result = []
+    for signal in signals:
+        signal_dict = signal.__dict__.copy()
+        signal_dict['instrument'] = signal.instrument
+        result.append(signal_dict)
+    
+    return result
+
+
+@router.get("/latest-backtest", response_model=List[SignalWithInstrument])
+def get_latest_backtest_signals(
+    limit: int = 50,
+    db: Session = Depends(get_db)
+):
+    """Get signals from the most recent completed backtest."""
+    from app.models import BacktestRun
+    from sqlalchemy import desc
+    
+    # Get the most recent completed backtest
+    latest_backtest = db.query(BacktestRun).filter(
+        BacktestRun.status == 'completed',
+        BacktestRun.total_trades > 0
+    ).order_by(desc(BacktestRun.id)).first()
+    
+    if not latest_backtest:
+        return []
+    
+    # Get signals from that backtest
     signals = db.query(Signal).filter(
-        Signal.date >= cutoff_date,
-        Signal.backtest_run_id == None
+        Signal.backtest_run_id == latest_backtest.id
     ).join(Instrument).order_by(Signal.date.desc()).limit(limit).all()
     
     result = []

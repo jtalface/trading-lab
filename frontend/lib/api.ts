@@ -204,8 +204,12 @@ class APIClient {
     return this.request('/signals/today')
   }
 
-  async getRecentSignals(days: number = 7): Promise<Signal[]> {
-    return this.request(`/signals/recent?days=${days}`)
+  async getRecentSignals(days: number = 7, includeBacktest: boolean = true): Promise<Signal[]> {
+    return this.request(`/signals/recent?days=${days}&include_backtest=${includeBacktest}`)
+  }
+
+  async getLatestBacktestSignals(limit: number = 50): Promise<Signal[]> {
+    return this.request(`/signals/latest-backtest?limit=${limit}`)
   }
 
   // Portfolio
