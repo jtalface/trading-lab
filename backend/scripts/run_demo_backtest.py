@@ -31,10 +31,10 @@ def run_demo_backtest():
         exit_period=10,
         stop_atr_multiple=2.0,
         cooldown_days=3,
-        risk_per_trade=0.005,
+        risk_per_trade=0.06,  # 6% - appropriate for futures
         max_contracts_per_instrument=5,
-        max_gross_exposure=0.5,
-        max_correlated_exposure=0.3,
+        max_gross_exposure=5.0,  # 500% - futures use leverage
+        max_correlated_exposure=4.0,  # 400%
         slippage_ticks=1.0,
         commission_per_contract=2.50,
         entry_timing="next_open",
