@@ -264,8 +264,8 @@ class BacktestEngine:
                 'ma_slope_10': current_row['ma_slope_10'],
                 'hh_20': prev_row['hh_20'],  # Use previous day's HH for breakout detection
                 'll_20': prev_row['ll_20'],  # Use previous day's LL for breakout detection
-                'hh_10': prev_row['hh_10'],  # Use previous day's HH10 for exit detection
-                'll_10': prev_row['ll_10']   # Use previous day's LL10 for exit detection
+                'hh_10': current_row['hh_10'],  # Use current day's HH10 for exit detection (includes today's range)
+                'll_10': current_row['ll_10']   # Use current day's LL10 for exit detection (includes today's range)
             }
             
             # Generate signal

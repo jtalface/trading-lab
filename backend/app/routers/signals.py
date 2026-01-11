@@ -69,22 +69,29 @@ def get_latest_backtest_signals(
     limit: int = 50,
     db: Session = Depends(get_db)
 ):
-    """Get signals from the most recent completed backtest."""
+    """Get signals from the most recent completed backtest that generated signals."""
     from app.models import BacktestRun
-    from sqlalchemy import desc
+    from sqlalchemy import desc, func
     
-    # Get the most recent completed backtest
-    latest_backtest = db.query(BacktestRun).filter(
-        BacktestRun.status == 'completed',
-        BacktestRun.total_trades > 0
+    # Get the most recent completed backtest that has signals
+    backtest_with_signals = db.query(
+        BacktestRun.id
+    ).filter(
+        BacktestRun.status == 'completed'
+    ).join(
+        Signal, Signal.backtest_run_id == BacktestRun.id
+    ).group_by(
+        BacktestRun.id
+    ).having(
+        func.count(Signal.id) > 0
     ).order_by(desc(BacktestRun.id)).first()
     
-    if not latest_backtest:
+    if not backtest_with_signals:
         return []
     
     # Get signals from that backtest
     signals = db.query(Signal).filter(
-        Signal.backtest_run_id == latest_backtest.id
+        Signal.backtest_run_id == backtest_with_signals.id
     ).join(Instrument).order_by(Signal.date.desc()).limit(limit).all()
     
     result = []
