@@ -21,10 +21,10 @@ export default function StrategyLabPage() {
     exit_period: 10,
     stop_atr_multiple: 2.0,
     cooldown_days: 3,
-    risk_per_trade: 0.005,
+    risk_per_trade: 0.06,
     max_contracts_per_instrument: 5,
-    max_gross_exposure: 0.5,
-    max_correlated_exposure: 0.3,
+    max_gross_exposure: 5.0,
+    max_correlated_exposure: 4.0,
     slippage_ticks: 1.0,
     commission_per_contract: 2.50,
     entry_timing: 'next_open',
@@ -258,9 +258,10 @@ export default function StrategyLabPage() {
                 onChange={e => setConfig({ ...config, risk_per_trade: Number(e.target.value) / 100 })}
                 className="input"
                 min="0.1"
-                max="5"
+                max="15"
                 step="0.1"
               />
+              <p className="text-xs text-gray-500 mt-1">Note: Futures require higher risk % due to leverage. Try 6-10% for realistic testing.</p>
             </div>
             <div>
               <label className="label">Max Contracts Per Instrument</label>
@@ -281,9 +282,10 @@ export default function StrategyLabPage() {
                 onChange={e => setConfig({ ...config, max_gross_exposure: Number(e.target.value) / 100 })}
                 className="input"
                 min="10"
-                max="200"
+                max="1000"
                 step="10"
               />
+              <p className="text-xs text-gray-500 mt-1">Futures use leverage. Try 500-800% for 5-8 contracts.</p>
             </div>
             <div>
               <label className="label">Drawdown Warning (%)</label>

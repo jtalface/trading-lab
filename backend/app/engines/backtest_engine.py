@@ -139,9 +139,9 @@ class BacktestEngine:
                     print(f"Warning: No data found for {instrument.symbol}")
                     continue
                 
-                # Check we have enough data for the strategy
-                if len(df) < config.ma_period:
-                    print(f"Warning: Not enough data for {instrument.symbol} (need {config.ma_period} bars, have {len(df)})")
+                # Features are pre-calculated, so we just need at least 2 days (current + previous)
+                if len(df) < 2:
+                    print(f"Warning: Need at least 2 days of data for {instrument.symbol}, have {len(df)}")
                     continue
                     
                 instrument_data[instrument.id] = {
@@ -262,13 +262,16 @@ class BacktestEngine:
                 'atr_20': current_row['atr_20'],
                 'ma_50': current_row['ma_50'],
                 'ma_slope_10': current_row['ma_slope_10'],
-                'hh_20': current_row['hh_20'],
-                'll_20': current_row['ll_20'],
-                'hh_10': current_row['hh_10'],
-                'll_10': current_row['ll_10']
+                'hh_20': prev_row['hh_20'],  # Use previous day's HH for breakout detection
+                'll_20': prev_row['ll_20'],  # Use previous day's LL for breakout detection
+                'hh_10': prev_row['hh_10'],  # Use previous day's HH10 for exit detection
+                'll_10': prev_row['ll_10']   # Use previous day's LL10 for exit detection
             }
             
             # Generate signal
+            print(f"DEBUG BACKTEST: {current_date} - Generating signal for {instrument.symbol}")
+            print(f"  current_bar: close={current_bar['close']:.2f}")
+            print(f"  features: ma50={features['ma_50']:.2f}, slope={features['ma_slope_10']:.4f}, hh20={features['hh_20']:.2f}")
             strategy_signal = strategy_engine.generate_signal(
                 current_date=current_date,
                 current_bar=current_bar,
@@ -276,6 +279,7 @@ class BacktestEngine:
                 features=features,
                 position=state.strategy_states[inst_id]
             )
+            print(f"  signal: {strategy_signal.action.value}, reason: {strategy_signal.reason}")
             
             # Process signal
             state = self._process_signal(
@@ -388,6 +392,7 @@ class BacktestEngine:
         
         # Handle entries
         elif signal.action in [SignalAction.ENTRY_LONG, SignalAction.ENTRY_SHORT]:
+            print(f"DEBUG: Processing ENTRY signal for {instrument.symbol}")
             # Calculate position size
             current_positions = [
                 {
@@ -397,6 +402,9 @@ class BacktestEngine:
                 for p in state.positions.values()
             ]
             
+            print(f"DEBUG: Calling risk_engine.validate_trade()")
+            print(f"  entry_price={signal.price:.2f}, stop_price={signal.stop_price:.2f}")
+            print(f"  equity={state.equity:.2f}, atr={signal.atr:.2f}")
             position_size, risk_state = risk_engine.validate_trade(
                 equity=state.equity,
                 peak_equity=state.peak_equity,
@@ -410,6 +418,7 @@ class BacktestEngine:
                 instrument_symbol=instrument.symbol
             )
             
+            print(f"DEBUG: Risk engine returned contracts={position_size.contracts}, mode={risk_state.mode.value}, can_trade={risk_state.can_open_new_trades}")
             if position_size.contracts > 0:
                 # Get next day's open for entry (if available)
                 next_date = self._get_next_trading_day(current_date, df)
